@@ -4,13 +4,18 @@ import csv
 import random
 import urllib.parse
 import re
+import requests           # ← これを追加
+from PIL import Image     # ← これを追加
+from io import BytesIO    # ← これを追加
 from google import genai
+
+# ... (以降は元のコード) ...
 
 # ==========================================
 # 0. 初期設定とセッション管理
 # ==========================================
 st.set_page_config(page_title="プロンプトエンジニアリング学習SaaS", page_icon="🧠", layout="wide")
-MODEL_NAME = "gemini-3-flash-preview"
+MODEL_NAME = "gemini-2.5-flash"
 CSV_FILENAME = "prompt_dataset.csv"
 
 # Webアプリの「一時記憶」をセットアップ（画面更新で消えないようにする）
