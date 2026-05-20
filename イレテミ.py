@@ -215,6 +215,10 @@ with tab3:
 with tab4:
     st.header("言語化能力テスト（画像分析）")
     
+    # セッション（記憶領域）の初期化
+    if "image_data" not in st.session_state:
+        st.session_state.image_data = None
+    
     if st.button("画像のお題を生成", type="primary", key="btn_img"):
         instruction = """日常のトラブルの「写真」を1枚想像し、必ず以下の形式で1つだけJSON出力してください。
         【重要】"situation"には、写真に写っている「視覚的に確認できる事実（物理的な状態）」のみを書いてください。見えない背景事情は含めないで。
@@ -223,22 +227,33 @@ with tab4:
             "image_prompt": "画像生成用プロンプト（英語。Photorealistic）"
         }"""
         
-        with st.spinner("AIが画像のお題を生成中... (約10秒)"):
+        with st.spinner("AIが画像のお題を生成中... (約10〜20秒)"):
             try:
+                # 1. 状況の生成
                 res = client.models.generate_content(model=MODEL_NAME, contents=instruction)
                 data = robust_parse_json(res.text)
                 
                 st.session_state.image_situation = data.get("situation", "不明な状況")
                 image_prompt = data.get("image_prompt", "error")
                 
+                # 2. 画像のダウンロード処理（アプリが落ちないように安全に取得）
                 encoded_prompt = urllib.parse.quote(image_prompt)
-                st.session_state.image_url = f"[https://image.pollinations.ai/prompt/](https://image.pollinations.ai/prompt/){encoded_prompt}?width=800&height=450&nologo=true"
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=800&height=450&nologo=true"
+                
+                img_response = requests.get(image_url, timeout=20)
+                img_response.raise_for_status() # エラーがあればここでキャッチして止める
+                
+                # 画像データをセッションに保存（URLではなく画像そのものを記憶させる）
+                st.session_state.image_data = Image.open(BytesIO(img_response.content))
+                
+            except requests.exceptions.RequestException:
+                st.error("❌ 画像サーバーが混雑しています。数十秒待ってから再度「画像のお題を生成」を押してください。")
             except Exception as e:
-                st.error(f"エラーが発生しました: {e}")
+                st.error(f"❌ エラーが発生しました: {e}")
 
-    if st.session_state.image_url:
-        # StreamlitならURLを渡すだけで綺麗に画像を表示してくれます
-        st.image(st.session_state.image_url, use_container_width=True)
+    # 画像データが保存されていれば表示する
+    if st.session_state.get("image_data"):
+        st.image(st.session_state.image_data, use_container_width=True)
         
         user_img_prompt = st.text_area("▼ 状況の説明 ＋ 解決の指示を入力 ▼", height=150)
         
