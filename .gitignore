@@ -1,0 +1,10 @@
+# Pythonの自動生成フォルダを無視
+__pycache__/
+*.pyc
+
+# Streamlitの一時設定ファイルを無視
+.streamlit/
+
+# OS固有の一時ファイルを無視
+.DS_Store
+Thumbs.db
